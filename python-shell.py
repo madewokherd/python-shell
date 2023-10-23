@@ -29,6 +29,9 @@ class Pipeline:
     def lines(self):
         return self.output().splitlines()
 
+    def line(self):
+        return self.lines()[0]
+
     def __or__(self, other):
         return CombinedPipeline(self, other)
 
