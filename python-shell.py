@@ -119,10 +119,13 @@ class CombinedPipeline(Pipeline):
         env = env or kwargs
         return CombinedPipeline(self.left.with_env(env), self.right.with_env(env))
 
-class ShellBuiltins:
+class ShellBuiltins(dict):
     def __getattr__(self, attr):
         try:
-            return getattr(orig_builtins, attr)
+            try:
+                return super().__getitem__(attr)
+            except KeyError:
+                return getattr(orig_builtins, attr)
         except AttributeError:
             return ShellCommand(shutil.which(attr))
 
@@ -138,5 +141,7 @@ def ps1():
 cd = os.chdir
 
 sys.ps1 = ShellPs1()
-__builtins__ = ShellBuiltins()
+shell_builtins = ShellBuiltins()
+shell_builtins['__import__'] = __import__
+__builtins__ = shell_builtins
 
