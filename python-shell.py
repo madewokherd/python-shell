@@ -33,12 +33,21 @@ class Pipeline:
         return CombinedPipeline(self, other)
 
 class ShellCommandPipeline(Pipeline):
-    __slots__ = ['argv']
-    def __init__(self, argv):
+    __slots__ = ['argv', 'env']
+    def __init__(self, argv, env=None):
         self.argv = argv
+        self.env = env
 
     def execute(self, stdin=None, stdout=None, stderr=None, check=False):
-        return subprocess.Popen(self.argv, stdin=stdin, stdout=stdout, stderr=stderr)
+        if self.env is None:
+            env = None
+        else:
+            env = os.environ.copy()
+            env.update(self.env)
+        return subprocess.Popen(self.argv, stdin=stdin, stdout=stdout, stderr=stderr, env=env)
+
+    def with_env(self, env=None, **kwargs):
+        return ShellCommandPipeline(self.argv, env or kwargs)
 
 class ShellCommand:
     __slots__ = ['path']
@@ -102,6 +111,10 @@ class CombinedPipeline(Pipeline):
         left = self.left.execute(stdin=stdin, stdout=subprocess.PIPE, stderr=stderr, check=check)
         right = self.right.execute(stdin=left.stdout, stdout=stdout, stderr=stderr, check=check)
         return RunningCombinedPipeline(left, right)
+
+    def with_env(self, env=None, **kwargs):
+        env = env or kwargs
+        return CombinedPipeline(self.left.with_env(env), self.right.with_env(env))
 
 class ShellBuiltins:
     def __getattr__(self, attr):
