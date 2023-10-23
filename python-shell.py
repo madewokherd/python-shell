@@ -130,6 +130,11 @@ class CombinedPipeline(Pipeline):
         env = env or kwargs
         return CombinedPipeline(self.left.with_env(env), self.right.with_env(env))
 
+def command(name):
+    path = shutil.which(name)
+    if path is not None:
+        return ShellCommand(path)
+
 class ShellBuiltins(dict):
     def __getattr__(self, attr):
         try:
@@ -138,9 +143,9 @@ class ShellBuiltins(dict):
             except KeyError:
                 return getattr(orig_builtins, attr)
         except AttributeError:
-            path = shutil.which(attr)
-            if path is not None:
-                return ShellCommand(path)
+            result = command(attr)
+            if result is not None:
+                return result
         raise AttributeError(f"command not found: {attr}")
 
     __getitem__ = __getattr__
