@@ -7,18 +7,25 @@ import time
 
 orig_builtins = __builtins__
 
+def check_return_code(pipeline):
+    if hasattr(pipeline, 'check_return_code'):
+        return pipeline.check_return_code()
+    if pipeline.returncode:
+        raise subprocess.CalledProcessError(pipeline.returncode, pipeline.args)
+
 class Pipeline:
     def __repr__(self):
-        pipeline = self.execute(check=True)
+        pipeline = self.execute()
         pipeline.wait()
+        check_return_code(pipeline)
         return ''
 
-    def execute(stdin=None, stdout=None, stderr=None, check=False):
+    def execute(self, stdin=None, stdout=None, stderr=None):
         "execute this pipeline and return a Popen-like object for it"
         raise NotImplementedError()
 
     def raw_output(self):
-        pipeline = self.execute(stdout=subprocess.PIPE, check=True)
+        pipeline = self.execute(stdout=subprocess.PIPE)
         result = pipeline.stdout.read()
         pipeline.wait()
         return result
@@ -41,7 +48,7 @@ class ShellCommandPipeline(Pipeline):
         self.argv = argv
         self.env = env
 
-    def execute(self, stdin=None, stdout=None, stderr=None, check=False):
+    def execute(self, stdin=None, stdout=None, stderr=None):
         if self.env is None:
             env = None
         else:
@@ -102,6 +109,10 @@ class RunningCombinedPipeline:
             return self.poll()
         return self.returncode
 
+    def check_return_code(self):
+        check_return_code(self.left)
+        check_return_code(self.right)
+
     # todo: communicate, send_signal, terminate, kill
 
 class CombinedPipeline(Pipeline):
@@ -110,9 +121,9 @@ class CombinedPipeline(Pipeline):
         self.left = left
         self.right = right
 
-    def execute(self, stdin=None, stdout=None, stderr=None, check=False):
-        left = self.left.execute(stdin=stdin, stdout=subprocess.PIPE, stderr=stderr, check=check)
-        right = self.right.execute(stdin=left.stdout, stdout=stdout, stderr=stderr, check=check)
+    def execute(self, stdin=None, stdout=None, stderr=None):
+        left = self.left.execute(stdin=stdin, stdout=subprocess.PIPE, stderr=stderr)
+        right = self.right.execute(stdin=left.stdout, stdout=stdout, stderr=stderr)
         return RunningCombinedPipeline(left, right)
 
     def with_env(self, env=None, **kwargs):
