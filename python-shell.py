@@ -138,7 +138,10 @@ class ShellBuiltins(dict):
             except KeyError:
                 return getattr(orig_builtins, attr)
         except AttributeError:
-            return ShellCommand(shutil.which(attr))
+            path = shutil.which(attr)
+            if path is not None:
+                return ShellCommand(path)
+        raise AttributeError(f"command not found: {attr}")
 
     __getitem__ = __getattr__
 
