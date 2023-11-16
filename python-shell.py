@@ -28,6 +28,7 @@ class Pipeline:
     def raw_output(self):
         pipeline = self.spawn(stdout=subprocess.PIPE)
         result = pipeline.stdout.read()
+        pipeline.stdout.close()
         pipeline.wait()
         return result
 
@@ -125,6 +126,7 @@ class CombinedPipeline(Pipeline):
     def spawn(self, stdin=None, stdout=None, stderr=None):
         left = self.left.spawn(stdin=stdin, stdout=subprocess.PIPE, stderr=stderr)
         right = self.right.spawn(stdin=left.stdout, stdout=stdout, stderr=stderr)
+        left.stdout.close()
         return RunningCombinedPipeline(left, right)
 
     def with_env(self, env=None, **kwargs):
