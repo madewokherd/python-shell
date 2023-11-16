@@ -1,5 +1,6 @@
 import getpass
 import os
+import pathlib
 import platform
 import shutil
 import subprocess
@@ -195,6 +196,13 @@ def ps1():
     return f"{getpass.getuser()}@{platform.node()}:{os.getcwd()}>>> "
 
 cd = os.chdir
+
+PIPE = subprocess.PIPE
+STDOUT = subprocess.STDOUT
+DEVNULL = subprocess.DEVNULL
+Path = pathlib.Path
+home = pathlib.Path.home
+cwd = pathlib.Path.cwd
 
 sys.ps1 = ShellPs1()
 shell_builtins = ShellBuiltins()
