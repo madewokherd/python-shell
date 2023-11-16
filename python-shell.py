@@ -192,8 +192,14 @@ class ShellPs1:
     def __str__(self):
         return ps1()
 
+def collapseuser(path):
+    homedir = os.path.expanduser('~')
+    if path.startswith(homedir) and path[len(homedir):len(homedir)+1] in ('', '/', os.path.sep):
+        return '~' + path[len(homedir):]
+    return path
+
 def ps1():
-    return f"{getpass.getuser()}@{platform.node()}:{os.getcwd()}>>> "
+    return f"{getpass.getuser()}@{platform.node()}:{collapseuser(os.getcwd())}>>> "
 
 cd = os.chdir
 
