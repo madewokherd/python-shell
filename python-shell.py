@@ -1,5 +1,6 @@
 import getpass
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -155,7 +156,7 @@ class ShellPs1:
         return ps1()
 
 def ps1():
-    return f"{getpass.getuser()}@{os.uname().nodename}:{os.getcwd()}>>> "
+    return f"{getpass.getuser()}@{platform.node()}:{os.getcwd()}>>> "
 
 cd = os.chdir
 
