@@ -81,13 +81,18 @@ class ShellCommand:
 
     def __call__(self, *args, **kwargs):
         argv = [self.path]
+        env = None
         for k in kwargs:
             if len(k) == 1:
                 argv.append(f'-{k}{kwargs[k]}')
+            elif k.isupper():
+                if env is None:
+                    env = {}
+                env[k] = kwargs[k]
             else:
                 argv.append(f'--{k}={kwargs[k]}')
         argv.extend(str(arg) for arg in args)
-        return ShellCommandPipeline(argv)
+        return ShellCommandPipeline(argv, env)
 
 class RunningCombinedPipeline:
     __slots__ = ['left','right','stdin','stdout','stderr','returncode']
