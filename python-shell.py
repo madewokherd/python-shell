@@ -220,3 +220,11 @@ shell_builtins = ShellBuiltins()
 shell_builtins['__import__'] = __import__
 __builtins__ = shell_builtins
 
+def source(path):
+    if isinstance(path, os.PathLike):
+        path = path.__fspath__()
+    exec(compile(open(path, 'r').read(), path, mode='exec'))
+
+if home().joinpath('.python_shell_profile').exists():
+    source(home().joinpath('.python_shell_profile'))
+
