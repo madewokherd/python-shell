@@ -44,6 +44,15 @@ class Pipeline:
     def __or__(self, other):
         return CombinedPipeline(self, other)
 
+    def in_from(self, input_stream):
+        if isinstance(input_stream, (str, bytes, os.PathLike)): 
+            return FileInputPipeline(input_stream, self)
+        if isinstance(input_stream, Pipeline):
+            return input_stream|self
+        if input_stream is None or isinstance(input_stream, int) or hasattr(input_stream, 'fileno'):
+            return StreamInputPipeline(input_stream, self)
+        raise TypeError('input_stream must be a path-like object, file handle, or Pipeline')
+
 class ShellCommandPipeline(Pipeline):
     __slots__ = ['argv', 'env']
     def __init__(self, argv, env=None):
@@ -132,6 +141,31 @@ class CombinedPipeline(Pipeline):
     def with_env(self, env=None, **kwargs):
         env = env or kwargs
         return CombinedPipeline(self.left.with_env(env), self.right.with_env(env))
+
+class FileInputPipeline(Pipeline):
+    def __init__(self, input_filename, pipeline):
+        self.input_filename = input_filename
+        self.pipeline = pipeline
+
+    def spawn(self, stdin=None, stdout=None, stderr=None):
+        with open(self.input_filename, 'rb') as input_file:
+            return self.pipeline.spawn(stdin=input_file, stdout=stdout, stderr=stderr)
+
+    def with_env(self, env=None, **kwargs):
+        env = env or kwargs
+        return FileInputPipeline(self.input_filename, self.pipeline.with_env(env))
+
+class StreamInputPipeline(Pipeline):
+    def __init__(self, input_stream, pipeline):
+        self.input_stream = input_stream
+        self.pipeline = pipeline
+
+    def spawn(self, stdin=None, stdout=None, stderr=None):
+        return self.pipeline.spawn(stdin=self.input_stream, stdout=stdout, stderr=stderr)
+
+    def with_env(self, env=None, **kwargs):
+        env = env or kwargs
+        return StreamInputPipeline(self.input_filename, self.pipeline.with_env(env))
 
 def command(name):
     path = shutil.which(name)
